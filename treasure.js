@@ -1,80 +1,114 @@
-function find_treasure_path(treasure_map) {
-    // start point
-    let x = 4;
-    let a = [];
-    let b = [];
-    let c = [];
+/**
+ * Find the shortest path from a starting cell to the treasure (`X`).
+ *
+ * Cells marked with `#` are walls. Every other cell is traversable.
+ * Coordinates are represented as [row, column].
+ *
+ * @param {string[][]} treasureMap
+ * @param {[number, number]} start
+ * @returns {Array<[number, number]>|null}
+ */
+function findTreasurePath(treasureMap, start) {
+    validateMap(treasureMap);
 
-    // up
-    for (let i = x; i > 0; i--) {
-        if (treasure_map[i][1] == '.') {
-            a.push([i,1]);
+    const [startRow, startColumn] = start;
+    assertInBounds(treasureMap, startRow, startColumn);
+
+    if (treasureMap[startRow][startColumn] === '#') {
+        return null;
+    }
+
+    const queue = [[startRow, startColumn]];
+    const visited = new Set([toKey(startRow, startColumn)]);
+    const previous = new Map();
+    let queueIndex = 0;
+
+    const directions = [
+        [-1, 0], // up
+        [1, 0],  // down
+        [0, -1], // left
+        [0, 1],  // right
+    ];
+
+    while (queueIndex < queue.length) {
+        const [row, column] = queue[queueIndex++];
+
+        if (treasureMap[row][column] === 'X') {
+            return buildPath(previous, [row, column]);
+        }
+
+        for (const [rowOffset, columnOffset] of directions) {
+            const nextRow = row + rowOffset;
+            const nextColumn = column + columnOffset;
+
+            if (!isInBounds(treasureMap, nextRow, nextColumn)) {
+                continue;
+            }
+
+            if (treasureMap[nextRow][nextColumn] === '#') {
+                continue;
+            }
+
+            const nextKey = toKey(nextRow, nextColumn);
+
+            if (visited.has(nextKey)) {
+                continue;
+            }
+
+            visited.add(nextKey);
+            previous.set(nextKey, [row, column]);
+            queue.push([nextRow, nextColumn]);
         }
     }
 
-    let b_path = treasure_map[1].length;
-    // right
-    for (let i = 0; i < b_path; i++) {
-       if (treasure_map[1][i] == '.') {
-            b.push([1, i]);
-       };
-    }
-
-    // down
-    let last_b_coordinate = b.pop();
-    for (let i = 1; i < treasure_map.length; i++) {
-        if (treasure_map[i][last_b_coordinate[1]] == '#') { break; }
-
-        if (treasure_map[i][last_b_coordinate[1]] == '.') {
-            c.push([i,6]);
-        }
-    }
-
-    // down
-    let last_b2_coordinate = b[4][1];
-    for (let i = 1; i < treasure_map.length; i++) {
-        if (treasure_map[i][last_b2_coordinate] == '.') {
-            c.push([i,5]);
-        }
-    }
-
-    // left
-    for (let i = b_path; i > 2; i--) {
-        if (treasure_map[3][i] == '.') {
-            b.push([4, i]);
-       };
-    }
-
-    // up
-    let last_b4_coordinate = b.pop()[0];
-    for (let i = last_b4_coordinate; i > 0; i--) {
-        if (treasure_map[i][3] == '#') { break; }
-
-        if (treasure_map[i][3] == '.') {
-            a.push([i,3]);
-        }
-    }
-
-    // left
-    let last_a_coordinate = a.pop()[0];
-
-    for (i=last_a_coordinate; i > 0; i--) {
-        if (treasure_map[3][i] == '#') { break; }
-
-        if (treasure_map[3][i] == '.') {
-            b.push([3,i]);
-        }
-    }
-
-    let result = [...new Set([...a, ...b, ...c])];
-
-    console.log(result);
-
+    return null;
 }
 
+function buildPath(previous, treasure) {
+    const path = [];
+    let current = treasure;
 
-// input
-const treasure_map = [
+    while (current !== undefined) {
+        path.push(current);
+        current = previous.get(toKey(current[0], current[1]));
+    }
+
+    return path.reverse();
+}
+
+function toKey(row, column) {
+    return `${row},${column}`;
+}
+
+function isInBounds(treasureMap, row, column) {
+    return (
+        row >= 0 &&
+        row < treasureMap.length &&
+        column >= 0 &&
+        column < treasureMap[row].length
+    );
+}
+
+function assertInBounds(treasureMap, row, column) {
+    if (!isInBounds(treasureMap, row, column)) {
+        throw new RangeError('The starting position is outside the map.');
+    }
+}
+
+function validateMap(treasureMap) {
+    if (!Array.isArray(treasureMap) || treasureMap.length === 0) {
+        throw new TypeError('The treasure map must be a non-empty 2D array.');
+    }
+
+    const columnCount = treasureMap[0].length;
+
+    if (columnCount === 0 || !treasureMap.every((row) => Array.isArray(row) && row.length === columnCount)) {
+        throw new TypeError('The treasure map must be rectangular.');
+    }
+}
+
+// Input
+const treasureMap = [
     ['#', '#', '#', '#', '#', '#', '#', '#'],
     ['#', '.', '.', '.', '.', '.', '.', '#'],
     ['#', '.', '#', '#', '#', '.', '.', '#'],
@@ -83,4 +117,12 @@ const treasure_map = [
     ['#', '#', '#', '#', '#', '#', '#', '#'],
 ];
 
-find_treasure_path(treasure_map);
+const start = [1, 1];
+const path = findTreasurePath(treasureMap, start);
+
+if (path === null) {
+    console.log('Treasure tidak ditemukan.');
+} else {
+    console.log('Treasure ditemukan!');
+    console.log('Shortest path:', path);
+}
